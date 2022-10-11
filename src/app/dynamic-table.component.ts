@@ -8,16 +8,15 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatSort } from '@angular/material/sort';
 import { BehaviorSubject, Observable, of, timer } from 'rxjs';
 import { concatMap, filter, map, takeUntil } from 'rxjs/operators';
+import '../polyfills/string.extension';
 import { BaseUnsubscribeComponent } from './base-unsubscribe-component.model';
 import { ListDataSourceResolved } from './list-datasource-resolved-base.model';
 import { SearchTerms } from './search';
 import { StartlizePipe } from './start-case.pipe';
-import { UtilsService } from './utils.service';
-import '../polyfills/string.extension';
-import { MatSort } from '@angular/material/sort';
-import { MatPaginator } from '@angular/material/paginator';
 
 export type DynamicTableLabels = {
   searchPlaceHolder?: string;
@@ -56,11 +55,11 @@ export class DynamicTableComponent<T = any>
    * Enable pass the search into inner generated tables
    */
   @Input() enableOuterSearch = true;
-  @Input() outerSearchItem?: Observable<SearchTerms | null>;
+  @Input() outerSearchItem?: Observable<string | null>;
 
   columns!: string[];
   dataSource!: ListDataSourceResolved<{ [key: string]: any }>;
-  searchTerms = new BehaviorSubject<SearchTerms | null>(null);
+  searchTerms = new BehaviorSubject<string | null>(null);
 
   internalToPropObjectTableDef = DynamicTableComponent.toPropObjectTableDef;
 
@@ -133,15 +132,15 @@ export class DynamicTableComponent<T = any>
 
     this.outerSearchItem
       .pipe(
-        concatMap((v: SearchTerms | null) => {
-          this.searchInput.nativeElement.value = v?.global ?? '';
+        concatMap((v: string | null) => {
+          this.searchInput.nativeElement.value = v ?? '';
           this.onSearchTerm(this.searchInput.nativeElement.value);
 
           return timer(100).pipe(map(() => v));
         }),
         filter(
-          (v: SearchTerms | null) =>
-            !!v?.global && !this.dataSource.noFilteredEntities$.getValue()
+          (v: string | null) =>
+            !!v && !this.dataSource.noFilteredEntities$.getValue()
         ),
         takeUntil(this._stop$)
       )
@@ -152,12 +151,7 @@ export class DynamicTableComponent<T = any>
   }
 
   onSearchTerm(searchTerm: string): void {
-    this.searchTerms.next(
-      new SearchTerms({
-        global: searchTerm,
-        specifics: {},
-      })
-    );
+    this.searchTerms.next(searchTerm);
   }
 
   isArray(elm: any): boolean {

@@ -28,10 +28,11 @@ export abstract class ListDataSourceResolvedBase<
   private _subscriptionsStopper = new Subject<void>();
 
   constructor(
-    public searchTerms$: BehaviorSubject<SearchTerms | null> = new BehaviorSubject<SearchTerms | null>(
-      null
-    ),
-    initialData: TEntity[] | null = null
+    public searchTerms$: BehaviorSubject<string | null> = new BehaviorSubject<
+      string | null
+    >(null),
+    initialData: TEntity[] | null = null,
+    private _options: { caseSensitive: boolean } = { caseSensitive: true }
   ) {
     super();
     this.dataStream$ = new BehaviorSubject<TEntity[]>(initialData ?? []);
@@ -195,15 +196,19 @@ export abstract class ListDataSourceResolvedBase<
     searchTerms: string[]
   ): boolean => {
     const emptyObjectStr = {}.toString();
-    const dataStr =
-      Object.keys(data as any)
-        .reduce((currentTerm: string, key: string) => {
-          const term = this.filterDataAccessor(data, key as keyof TEntity);
-          return term && !term.includes(emptyObjectStr)
-            ? currentTerm + term + '◬'
-            : currentTerm;
-        }, '')
-        .toLowerCase() + this.filterCustomTerms(data);
+    let dataStr = Object.keys(data as any).reduce(
+      (currentTerm: string, key: string) => {
+        const term = this.filterDataAccessor(data, key as keyof TEntity);
+        return term && !term.includes(emptyObjectStr)
+          ? currentTerm + term + '◬'
+          : currentTerm;
+      },
+      ''
+    );
+    if (!this._options.caseSensitive) {
+      dataStr = dataStr.toLowerCase();
+    }
+    this.filterCustomTerms(data);
     return searchTerms.some((tf: string) => dataStr.indexOf(tf) !== -1);
   };
 
@@ -220,13 +225,18 @@ export abstract class ListDataSourceResolvedBase<
   filterCustomTerms: (data: TEntity) => string = () => '';
 
   protected _getSearchedData(data: TEntity[]): TEntity[] {
-    const searchTerms = this.searchTerms$?.getValue()?.getTerms();
+    const searchTerms = this.searchTerms$?.getValue();
     if (!searchTerms?.length) {
       return data;
     }
 
     return data.filter((entity: TEntity) =>
-      this.filterPredicate(entity, searchTerms)
+      this.filterPredicate(
+        entity,
+        searchTerms
+          .split(' ')
+          .map((st) => (this._options.caseSensitive ? st : st.toLowerCase()))
+      )
     );
   }
 
