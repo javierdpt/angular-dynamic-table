@@ -56,6 +56,7 @@ export class DynamicTableComponent<T = any>
   @Input() enableOuterSearch = true;
   @Input() caseSensitive = true;
   @Input() outerSearchItem?: Observable<string | null>;
+  @Input() itemsPerPage: number[] = [5, 10, 20];
 
   loading = false;
   columns!: string[];
@@ -183,6 +184,10 @@ export class DynamicTableComponent<T = any>
       typeOfFirstElm === 'boolean' ||
       typeOfFirstElm === 'number'
     );
+  }
+
+  getMinItemsPerPage(): number {
+    return this.itemsPerPage.sort()[0];
   }
 
   private _init(): void {

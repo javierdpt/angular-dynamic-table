@@ -139,11 +139,11 @@
 
 <mat-paginator
   [class.d-none]="
-    !this.dataSource.dataStream$.getValue().length ||
+    this.dataSource.dataStream$.getValue().length < getMinItemsPerPage() ||
     !dataSource.noFilteredEntities$.getValue()
   "
   class="mat-elevation-z3"
-  [pageSizeOptions]="[5, 10, 20]"
+  [pageSizeOptions]="itemsPerPage"
   showFirstLastButtons
 >
 </mat-paginator>

@@ -40,14 +40,16 @@
   <div *ngSwitchCase="'users'">
     <jd-dynamic-table
       [data]="getUsers()"
-      [ignoredProps]="['hair', 'agent']"
+      [ignoredProps]="['hair', 'userAgent', 'ein', 'ssn']"
       [transform]="transformUsers"
+      [itemsPerPage]="[2, 4, 8]"
     ></jd-dynamic-table>
   </div>
   <div *ngSwitchCase="'products'">
     <jd-dynamic-table
       [data]="getProducts()"
       [transform]="transformProducts"
+      [caseSensitive]="false"
     ></jd-dynamic-table>
   </div>
   <div *ngSwitchCase="'products'">...</div>
