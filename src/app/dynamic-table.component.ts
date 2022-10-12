@@ -192,6 +192,8 @@ export class DynamicTableComponent<T = any>
   private _init(): void {
     this.loading = true;
     this.data$.subscribe((data: T[]) => {
+      if (!Array.isArray(data)) throw new Error("Dynamic table data must be an array.");
+
       const tempData = data.map((item: T) => {
         const objectPropsProcessed = this._getObjectKeyValuePairs({
           input: item,
