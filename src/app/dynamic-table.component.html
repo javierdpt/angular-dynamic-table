@@ -25,126 +25,143 @@
   </button>
 </div>
 
-<ng-container
-  *ngIf="this.dataSource.dataStream$.getValue()?.length; else emptyMessage"
->
-  <div [class.d-none]="!dataSource.noFilteredEntities$.getValue()">
-    <table mat-table [dataSource]="dataSource" class="custom-shadow" matSort>
-      <ng-container
-        *ngFor="let disCol of columns; let colIndex = index"
-        [matColumnDef]="disCol"
-      >
-        <th class="ps-2 pe-2" mat-header-cell *matHeaderCellDef mat-sort-header>
-          {{ (disCol | startlize) || "" | titlecase }}
-        </th>
+<div style="overflow-y: auto">
+  <table
+    mat-table
+    [dataSource]="dataSource"
+    class="custom-shadow"
+    matSort
+    [style.box-shadow]="
+      !loading && !dataSource.noFilteredEntities$.getValue()
+        ? 'none'
+        : undefined
+    "
+  >
+    <ng-container
+      *ngFor="let disCol of columns; let colIndex = index"
+      [matColumnDef]="disCol"
+    >
+      <th class="ps-2 pe-2" mat-header-cell *matHeaderCellDef mat-sort-header>
+        {{ (disCol | startlize) || "" | titlecase }}
+      </th>
 
-        <td class="ps-2 pe-2" mat-cell *matCellDef="let element">
-          <ng-container *ngIf="isArray(element[disCol])">
+      <td class="ps-2 pe-2" mat-cell *matCellDef="let element">
+        <ng-container *ngIf="isArray(element[disCol])">
+          <ng-container
+            *ngIf="isNativeArray(element[disCol]); else objectArray"
+          >
+            <ul>
+              <li *ngFor="let item of element[disCol]">{{ item }}</li>
+            </ul>
+          </ng-container>
+
+          <ng-template #objectArray>
             <ng-container
-              *ngIf="isNativeArray(element[disCol]); else objectArray"
+              *ngIf="
+                displayAsItemsTable(element[disCol]);
+                else arrayAsKeyValPairTable
+              "
             >
-              <ul>
-                <li *ngFor="let item of element[disCol]">{{ item }}</li>
-              </ul>
+              <jd-dynamic-table
+                [searchEnabled]="searchEnabled && true"
+                class="custom-tb"
+                [data]="element[disCol]"
+                [outerSearchItem]="enableOuterSearch ? searchTerms : undefined"
+              >
+              </jd-dynamic-table>
             </ng-container>
 
-            <ng-template #objectArray>
-              <ng-container
-                *ngIf="
-                  displayAsItemsTable(element[disCol]);
-                  else arrayAsKeyValPairTable
-                "
-              >
-                <app-shared-dynamic-table
+            <ng-template #arrayAsKeyValPairTable>
+              <ng-container *ngFor="let item of element[disCol]; let i = index">
+                <jd-dynamic-table
                   [searchEnabled]="searchEnabled && true"
                   class="custom-tb"
-                  [data]="element[disCol]"
+                  [data]="internalToPropObjectTableDef(item, 'Property Name')"
                   [outerSearchItem]="
                     enableOuterSearch ? searchTerms : undefined
                   "
                 >
-                </app-shared-dynamic-table>
+                </jd-dynamic-table>
               </ng-container>
-
-              <ng-template #arrayAsKeyValPairTable>
-                <ng-container
-                  *ngFor="let item of element[disCol]; let i = index"
-                >
-                  <app-shared-dynamic-table
-                    [searchEnabled]="searchEnabled && true"
-                    class="custom-tb"
-                    [data]="internalToPropObjectTableDef(item, 'Property Name')"
-                    [outerSearchItem]="
-                      enableOuterSearch ? searchTerms : undefined
-                    "
-                  >
-                  </app-shared-dynamic-table>
-                </ng-container>
-              </ng-template>
             </ng-template>
-          </ng-container>
+          </ng-template>
+        </ng-container>
 
-          <app-shared-dynamic-table
-            *ngIf="!isDate(element[disCol]) && isObject(element[disCol])"
-            [searchEnabled]="searchEnabled && true"
-            class="custom-tb"
-            [data]="
-              internalToPropObjectTableDef(element[disCol], 'Property Name')
-            "
-            [outerSearchItem]="enableOuterSearch ? searchTerms : undefined"
-          >
-          </app-shared-dynamic-table>
+        <jd-dynamic-table
+          *ngIf="!isDate(element[disCol]) && isObject(element[disCol])"
+          [searchEnabled]="searchEnabled && true"
+          class="custom-tb"
+          [data]="
+            internalToPropObjectTableDef(element[disCol], 'Property Name')
+          "
+          [outerSearchItem]="enableOuterSearch ? searchTerms : undefined"
+        >
+        </jd-dynamic-table>
 
-          <span
-            *ngIf="isDate(element[disCol])"
-            [innerHTML]="
-              element[disCol]
-                | date: 'YYYY-MM-dd HH:mm:ss'
-                | highlightText: search.value
-            "
-          ></span>
+        <span
+          *ngIf="isDate(element[disCol])"
+          [innerHTML]="
+            element[disCol]
+              | date: 'YYYY-MM-dd HH:mm:ss'
+              | highlightText: search.value
+          "
+        ></span>
 
-          <span
-            *ngIf="!isArray(element[disCol]) && !isObject(element[disCol])"
-            [innerHTML]="element[disCol] | highlightText: search.value"
-          ></span>
-        </td>
-      </ng-container>
+        <span
+          *ngIf="!isArray(element[disCol]) && !isObject(element[disCol])"
+          [innerHTML]="element[disCol] | highlightText: search.value"
+        ></span>
+      </td>
+    </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="columns"></tr>
-      <tr mat-row *matRowDef="let row; columns: columns"></tr>
-    </table>
+    <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr mat-row *matRowDef="let row; columns: columns"></tr>
+  </table>
+</div>
 
-    <mat-paginator
-      [class.d-none]="!this.dataSource.dataStream$.getValue().length"
-      class="mat-elevation-z3"
-      [pageSizeOptions]="[5, 10, 20]"
-      showFirstLastButtons
-    >
-    </mat-paginator>
-  </div>
-
-  <div
-    *ngIf="!dataSource.noFilteredEntities$.getValue()"
-    class="no-data custom-shadow p-4 mt-2 text-center"
+<div
+  *ngIf="!loading && !dataSource.noFilteredEntities$.getValue()"
+  class="no-data custom-shadow p-4 mt-2 text-center"
+>
+  <p [attr.data-lr]="labels.emptyFilterMsg">
+    {{ labels.emptyFilterMsg! }} "{{ search.value }}""
+  </p>
+  <button
+    class="mt-2"
+    mat-button
+    color="primary"
+    (click)="search.value = ''; onSearchTerm(search.value)"
   >
-    <p [attr.data-lr]="labels.emptyFilterMsg">
-      {{ labels.emptyFilterMsg! }} "{{ search.value }}""
-    </p>
-    <button
-      class="mt-2"
-      mat-button
-      color="primary"
-      (click)="search.value = ''; onSearchTerm(search.value)"
-    >
-      <mat-icon>search</mat-icon>
-      <span class="ms-2">Clear search</span>
-    </button>
-  </div>
-</ng-container>
+    <mat-icon>search</mat-icon>
+    <span class="ms-2">Clear search</span>
+  </button>
+</div>
 
-<ng-template #emptyMessage>
-  <div class="no-data p-4 mb-2 mt-2 text-center">
-    <p>{{ labels.emptyDataMsg }}</p>
-  </div>
-</ng-template>
+<mat-paginator
+  [class.d-none]="
+    !this.dataSource.dataStream$.getValue().length ||
+    !dataSource.noFilteredEntities$.getValue()
+  "
+  class="mat-elevation-z3"
+  [pageSizeOptions]="[5, 10, 20]"
+  showFirstLastButtons
+>
+</mat-paginator>
+
+<div
+  *ngIf="!loading && !(dataSource.noEntities$ | async)"
+  class="custom-shadow box"
+>
+  <p>{{ labels.emptyDataMsg }}</p>
+</div>
+
+<div class="loading custom-shadow box" *ngIf="loading">
+  <mat-progress-spinner
+    color="primary"
+    mode="indeterminate"
+    diameter="50"
+    style="margin-right: 10px"
+  >
+  </mat-progress-spinner>
+  Loading...
+</div>

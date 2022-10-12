@@ -1,5 +1,6 @@
-import { Component, ViewChild } from '@angular/core';
-import { MatSort } from '@angular/material/sort';
+import { HttpClient } from '@angular/common/http';
+import { Component } from '@angular/core';
+import { delay, map, Observable } from 'rxjs';
 
 const ELEMENT_DATA: PeriodicElement[] = [
   { position: 1, name: 'Hydrogen', weight: 1.0079, symbol: 'H' },
@@ -28,9 +29,10 @@ export interface PeriodicElement {
 })
 export class AppComponent {
   title = 'angular-dynamic-table';
+  example: 'static' | 'users' | 'products' = 'static';
   displayedColumns: string[] = ['position', 'name', 'weight', 'symbol'];
   dataSource = ELEMENT_DATA;
-  data = [
+  staticData = [
     {
       id: 1,
       firstName: 'Gary',
@@ -825,10 +827,47 @@ export class AppComponent {
     },
   ];
 
-  transform = (key: string, value: any): string => {
+  /**
+   *
+   */
+  constructor(private _httpClient: HttpClient) {}
+
+  getProducts(): any {
+    return this._httpClient.get('https://dummyjson.com/products').pipe(
+      map((r: any) => r.products),
+      delay(1000)
+    );
+  }
+
+  getUsers(): any {
+    return this._httpClient.get('https://dummyjson.com/users').pipe(
+      map((r: any) => r.users),
+      delay(1000)
+    );
+  }
+
+  transformStatic = (key: string, value: any): string => {
     switch (key) {
       case 'vip':
         return `<strong class="${value}">${value ? 'Yes' : 'No'}</strong>`;
+      default:
+        return value;
+    }
+  };
+
+  transformProducts = (key: string, value: any): string => {
+    switch (key) {
+      case 'thumbnail':
+        return `<img src="${value}" style="width: 100px"/>`;
+      default:
+        return value;
+    }
+  };
+
+  transformUsers = (key: string, value: any): string => {
+    switch (key) {
+      case 'image':
+        return `<img src="${value}" style="width: 100px"/>`;
       default:
         return value;
     }

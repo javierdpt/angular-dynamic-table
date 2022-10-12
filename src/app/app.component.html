@@ -1,8 +1,54 @@
 <mat-toolbar>
   <span>Dynamic table example</span>
 </mat-toolbar>
+
 <br />
-<app-shared-dynamic-table
-  [data]="data"
-  [transform]="transform"
-></app-shared-dynamic-table>
+
+<div>
+  <span>Example: </span>
+  <mat-button-toggle-group name="fontStyle" aria-label="Font Style">
+    <mat-button-toggle
+      [checked]="example === 'static'"
+      value="static"
+      (change)="example = 'static'"
+      >Static</mat-button-toggle
+    >
+    <mat-button-toggle
+      [checked]="example === 'users'"
+      value="users"
+      (change)="example = 'users'"
+      >Async users</mat-button-toggle
+    >
+    <mat-button-toggle
+      [checked]="example === 'products'"
+      value="users"
+      (change)="example = 'products'"
+      >Async products</mat-button-toggle
+    >
+  </mat-button-toggle-group>
+</div>
+
+<br />
+
+<container-element [ngSwitch]="example">
+  <div *ngSwitchCase="'static'">
+    <jd-dynamic-table
+      [data]="staticData"
+      [transform]="transformStatic"
+    ></jd-dynamic-table>
+  </div>
+  <div *ngSwitchCase="'users'">
+    <jd-dynamic-table
+      [data]="getUsers()"
+      [ignoredProps]="['hair', 'agent']"
+      [transform]="transformProducts"
+    ></jd-dynamic-table>
+  </div>
+  <div *ngSwitchCase="'products'">
+    <jd-dynamic-table
+      [data]="getProducts()"
+      [transform]="transformProducts"
+    ></jd-dynamic-table>
+  </div>
+  <div *ngSwitchCase="'products'">...</div>
+</container-element>

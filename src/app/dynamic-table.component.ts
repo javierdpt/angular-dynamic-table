@@ -10,8 +10,8 @@ import {
 } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
-import { BehaviorSubject, Observable, of, timer } from 'rxjs';
-import { concatMap, filter, map, takeUntil } from 'rxjs/operators';
+import { BehaviorSubject, from, Observable, of, timer } from 'rxjs';
+import { concatMap, delay, filter, map, takeUntil } from 'rxjs/operators';
 import '../polyfills/string.extension';
 import { BaseUnsubscribeComponent } from './base-unsubscribe-component.model';
 import { ListDataSourceResolved } from './list-datasource-resolved-base.model';
@@ -25,7 +25,7 @@ export type DynamicTableLabels = {
 };
 
 @Component({
-  selector: 'app-shared-dynamic-table',
+  selector: 'jd-dynamic-table',
   templateUrl: './dynamic-table.component.html',
   styleUrls: ['./dynamic-table.component.scss'],
 })
@@ -40,8 +40,7 @@ export class DynamicTableComponent<T = any>
 
   @ViewChild('search', { static: true })
   searchInput!: ElementRef<HTMLInputElement>;
-  @Input() data?: { [key: string]: any }[];
-  @Input() data$!: Observable<{ [key: string]: T }[]>;
+  @Input() data!: T[] | Observable<T[]>;
   @Input() ignoredProps: string[] = [];
   @Input() order: string[] = [];
   @Input() transform?: (key: string, value: any) => string;
@@ -55,11 +54,14 @@ export class DynamicTableComponent<T = any>
    * Enable pass the search into inner generated tables
    */
   @Input() enableOuterSearch = true;
+  @Input() caseSensitive = true;
   @Input() outerSearchItem?: Observable<string | null>;
 
+  loading = false;
   columns!: string[];
   dataSource!: ListDataSourceResolved<{ [key: string]: any }>;
   searchTerms = new BehaviorSubject<string | null>(null);
+  data$!: Observable<T[]>;
 
   internalToPropObjectTableDef = DynamicTableComponent.toPropObjectTableDef;
 
@@ -108,16 +110,17 @@ export class DynamicTableComponent<T = any>
   }
 
   ngOnInit(): void {
-    if (!this.data && !this.data$) {
-      throw new Error('Either data or data$ must be passed.');
+    if (!this.data) {
+      throw new Error('Either data prop must be passed.');
     }
 
-    if (this.data && this.data$) {
-      throw new Error('Only one of data or data$ must be passed.');
-    }
-
-    this.dataSource = new ListDataSourceResolved(this.searchTerms);
-    this.data$ = of(this.data!);
+    this.dataSource = new ListDataSourceResolved(this.searchTerms, [] as any, {
+      caseSensitive: this.caseSensitive,
+    });
+    this.data$ =
+      this.data instanceof Observable
+        ? this.data
+        : (of(this.data!) as Observable<T[]>);
 
     this._init();
   }
@@ -183,8 +186,9 @@ export class DynamicTableComponent<T = any>
   }
 
   private _init(): void {
-    this.data$.subscribe((data: { [key: string]: any }[]) => {
-      const tempData = data.map((item: { [key: string]: any }) => {
+    this.loading = true;
+    this.data$.subscribe((data: T[]) => {
+      const tempData = data.map((item: T) => {
         const objectPropsProcessed = this._getObjectKeyValuePairs({
           input: item,
           ignoredProps: this.ignoredProps,
@@ -199,27 +203,28 @@ export class DynamicTableComponent<T = any>
       });
 
       this.dataSource.setData(tempData);
+      this.loading = false;
       this.columns = tempData.length ? Object.keys(tempData[0]) : [];
     });
   }
 
   private _getObjectKeyValuePairs(options: {
-    input: { [key: string]: any };
+    input: T;
     ignoredProps?: string[];
     order?: string[];
-    transform?: (key: string, value: any) => string;
+    transform?: (key: string, value: T) => string;
   }): { title: string; value: string }[] {
     const items: { title: string; value: string }[] = [];
 
     const addItem = (
-      key: string,
+      key: keyof T,
       arr: { title: string; value: string }[]
     ): void => {
       arr.push({
-        title: key,
+        title: key as string,
         value: !options.transform
-          ? options.input[key]
-          : options.transform(key, options.input[key]),
+          ? (options.input[key] as unknown as string)
+          : options.transform(key as string, options.input[key] as any),
       });
     };
 

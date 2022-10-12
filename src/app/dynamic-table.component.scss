@@ -31,3 +31,15 @@ table {
   box-shadow: 0px 5px 5px -3px rgb(0 0 0 / 20%),
     0px 8px 10px 1px rgb(0 0 0 / 14%);
 }
+
+.box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: white;
+  padding: 50px;
+}
+
+.loading {
+  padding: 50px 50px 130px 50px;
+}
