@@ -2,19 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
 import { delay, map, Observable } from 'rxjs';
 
-const ELEMENT_DATA: PeriodicElement[] = [
-  { position: 1, name: 'Hydrogen', weight: 1.0079, symbol: 'H' },
-  { position: 2, name: 'Helium', weight: 4.0026, symbol: 'He' },
-  { position: 3, name: 'Lithium', weight: 6.941, symbol: 'Li' },
-  { position: 4, name: 'Beryllium', weight: 9.0122, symbol: 'Be' },
-  { position: 5, name: 'Boron', weight: 10.811, symbol: 'B' },
-  { position: 6, name: 'Carbon', weight: 12.0107, symbol: 'C' },
-  { position: 7, name: 'Nitrogen', weight: 14.0067, symbol: 'N' },
-  { position: 8, name: 'Oxygen', weight: 15.9994, symbol: 'O' },
-  { position: 9, name: 'Fluorine', weight: 18.9984, symbol: 'F' },
-  { position: 10, name: 'Neon', weight: 20.1797, symbol: 'Ne' },
-];
-
 export interface PeriodicElement {
   name: string;
   position: number;
@@ -28,10 +15,7 @@ export interface PeriodicElement {
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent {
-  title = 'angular-dynamic-table';
   example: 'static' | 'users' | 'products' = 'static';
-  displayedColumns: string[] = ['position', 'name', 'weight', 'symbol'];
-  dataSource = ELEMENT_DATA;
   staticData = [
     {
       id: 1,
@@ -827,9 +811,6 @@ export class AppComponent {
     },
   ];
 
-  /**
-   *
-   */
   constructor(private _httpClient: HttpClient) {}
 
   getProducts(): any {
@@ -855,19 +836,24 @@ export class AppComponent {
     }
   };
 
-  transformProducts = (key: string, value: any): string => {
-    switch (key) {
-      case 'thumbnail':
-        return `<img src="${value}" style="width: 100px"/>`;
-      default:
-        return value;
-    }
-  };
+  transformImage =
+    (propName: string, extraTransform?: (key: any, value: any) => string) =>
+    (key: any, value: any): string => {
+      switch (key) {
+        case propName:
+          return `<img src="${value}" class="w-100px"/>`;
+        default:
+          return extraTransform ? extraTransform(key, value) : value;
+      }
+    };
 
-  transformUsers = (key: string, value: any): string => {
+  transformProductImages = (key: any, value: any): string => {
     switch (key) {
-      case 'image':
-        return `<img src="${value}" style="width: 100px"/>`;
+      case 'images':
+        const images = value.map(
+          (src: string) => `<img src="${src}" class="w-50px"/>`
+        );
+        return `<div class="d-flex">${images.join('')}</div>`;
       default:
         return value;
     }

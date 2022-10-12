@@ -67,6 +67,8 @@
                 class="custom-tb"
                 [data]="element[disCol]"
                 [outerSearchItem]="enableOuterSearch ? searchTerms : undefined"
+                [caseSensitive]="caseSensitive"
+                [itemsPerPage]="itemsPerPage"
               >
               </jd-dynamic-table>
             </ng-container>
@@ -77,6 +79,8 @@
                   [searchEnabled]="searchEnabled && true"
                   class="custom-tb"
                   [data]="internalToPropObjectTableDef(item, 'Property Name')"
+                  [caseSensitive]="caseSensitive"
+                  [itemsPerPage]="itemsPerPage"
                   [outerSearchItem]="
                     enableOuterSearch ? searchTerms : undefined
                   "

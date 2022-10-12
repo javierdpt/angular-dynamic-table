@@ -35,20 +35,21 @@
     <jd-dynamic-table
       [data]="staticData"
       [transform]="transformStatic"
+      [maxPropArrayView]="10"
     ></jd-dynamic-table>
   </div>
   <div *ngSwitchCase="'users'">
     <jd-dynamic-table
       [data]="getUsers()"
       [ignoredProps]="['hair', 'userAgent', 'ein', 'ssn']"
-      [transform]="transformUsers"
+      [transform]="transformImage('image')"
       [itemsPerPage]="[2, 4, 8]"
     ></jd-dynamic-table>
   </div>
   <div *ngSwitchCase="'products'">
     <jd-dynamic-table
       [data]="getProducts()"
-      [transform]="transformProducts"
+      [transform]="transformImage('thumbnail', transformProductImages)"
       [caseSensitive]="false"
     ></jd-dynamic-table>
   </div>

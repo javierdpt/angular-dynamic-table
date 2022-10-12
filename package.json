@@ -5,6 +5,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:docs": "rm -r -f docs && ng build --configuration production --base-href /angular-dynamic-table/ --output-path docs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

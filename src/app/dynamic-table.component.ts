@@ -10,12 +10,11 @@ import {
 } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
-import { BehaviorSubject, from, Observable, of, timer } from 'rxjs';
-import { concatMap, delay, filter, map, takeUntil } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, timer } from 'rxjs';
+import { concatMap, filter, map, takeUntil } from 'rxjs/operators';
 import '../polyfills/string.extension';
 import { BaseUnsubscribeComponent } from './base-unsubscribe-component.model';
 import { ListDataSourceResolved } from './list-datasource-resolved-base.model';
-import { SearchTerms } from './search';
 import { StartlizePipe } from './start-case.pipe';
 
 export type DynamicTableLabels = {
@@ -41,9 +40,9 @@ export class DynamicTableComponent<T = any>
   @ViewChild('search', { static: true })
   searchInput!: ElementRef<HTMLInputElement>;
   @Input() data!: T[] | Observable<T[]>;
-  @Input() ignoredProps: string[] = [];
-  @Input() order: string[] = [];
-  @Input() transform?: (key: string, value: any) => string;
+  @Input() ignoredProps: (keyof T)[] = [] as (keyof T)[];
+  @Input() order: (keyof T)[] = [] as (keyof T)[];
+  @Input() transform?: (key: keyof T, value: any) => string;
   @Input() searchEnabled = true;
   /**
    * Max number of property object allowed to display as a table.
@@ -215,9 +214,9 @@ export class DynamicTableComponent<T = any>
 
   private _getObjectKeyValuePairs(options: {
     input: T;
-    ignoredProps?: string[];
-    order?: string[];
-    transform?: (key: string, value: T) => string;
+    ignoredProps?: (keyof T)[];
+    order?: (keyof T)[];
+    transform?: (key: keyof T, value: T) => string;
   }): { title: string; value: string }[] {
     const items: { title: string; value: string }[] = [];
 
@@ -229,7 +228,7 @@ export class DynamicTableComponent<T = any>
         title: key as string,
         value: !options.transform
           ? (options.input[key] as unknown as string)
-          : options.transform(key as string, options.input[key] as any),
+          : options.transform(key, options.input[key] as any),
       });
     };
 
@@ -254,7 +253,8 @@ export class DynamicTableComponent<T = any>
       : items
           .sort(
             (a, b) =>
-              options.order!.indexOf(a.title) - options.order!.indexOf(b.title)
+              options.order!.indexOf(a.title as keyof T) -
+              options.order!.indexOf(b.title as keyof T)
           )
           .concat(unOrderedItems);
   }
