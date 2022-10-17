@@ -37,15 +37,16 @@
         : undefined
     "
   >
+    <!-- Dynamic columns -->
     <ng-container
       *ngFor="let disCol of columns; let colIndex = index"
       [matColumnDef]="disCol"
     >
-      <th class="ps-2 pe-2" mat-header-cell *matHeaderCellDef mat-sort-header>
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>
         {{ (disCol | startlize) || "" | titlecase }}
       </th>
 
-      <td class="ps-2 pe-2" mat-cell *matCellDef="let element">
+      <td mat-cell *matCellDef="let element">
         <ng-container *ngIf="isArray(element[disCol])">
           <ng-container
             *ngIf="isNativeArray(element[disCol]); else objectArray"
@@ -113,12 +114,60 @@
 
         <span
           *ngIf="!isArray(element[disCol]) && !isObject(element[disCol])"
-          [innerHTML]="element[disCol] | highlightText: search.value"
+          [innerHTML]="
+            element[disCol]
+              | highlightText
+                : joinTruthyStrings(search.value, getSearchTermsValue()[disCol])
+          "
         ></span>
       </td>
     </ng-container>
 
+    <!-- Search by column -->
+    <ng-container
+      *ngFor="let disCol of columns"
+      [matColumnDef]="'search-column-' + disCol"
+    >
+      <th
+        [class.d-none]="
+          !columSearchEnabled || !dataSource.noFilteredEntities$.getValue()
+        "
+        mat-header-cell
+        *matHeaderCellDef
+        class="search-col"
+      >
+        <mat-form-field appearance="fill">
+          <mat-label
+            >Search {{ (disCol | startlize) || "" | titlecase }}:</mat-label
+          >
+          <input
+            matInput
+            #searchInput
+            type="text"
+            (input)="onColumnSearchTerm(disCol, searchInput.value)"
+          />
+          <button
+            *ngIf="searchInput.value"
+            matSuffix
+            mat-icon-button
+            aria-label="Clear"
+            (click)="searchInput.value = ''; onColumnSearchTerm(disCol, '')"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        </mat-form-field>
+      </th>
+    </ng-container>
+
     <tr mat-header-row *matHeaderRowDef="columns"></tr>
+    <tr
+      [class.d-none]="
+        !columSearchEnabled || !dataSource.noFilteredEntities$.getValue()
+      "
+      mat-header-row
+      *matHeaderRowDef="getSearchColumnsHeaderRowDef()"
+      class="search-header-row"
+    ></tr>
     <tr mat-row *matRowDef="let row; columns: columns"></tr>
   </table>
 </div>
@@ -131,10 +180,9 @@
     {{ labels.emptyFilterMsg! }} "{{ search.value }}""
   </p>
   <button
-    class="mt-2"
     mat-button
     color="primary"
-    (click)="search.value = ''; onSearchTerm(search.value)"
+    (click)="search.value = ''; searchTerms.next({ global: '' })"
   >
     <mat-icon>search</mat-icon>
     <span class="ms-2">Clear search</span>
@@ -153,7 +201,7 @@
 </mat-paginator>
 
 <div
-  *ngIf="!loading && !(dataSource.noEntities$ | async)"
+  *ngIf="!loading && dataSource.noEntities$.getValue()"
   class="custom-shadow box"
 >
   <p>{{ labels.emptyDataMsg }}</p>

@@ -10,11 +10,14 @@ import {
   mergeAll,
   take,
   takeUntil,
-  takeWhile,
 } from 'rxjs/operators';
-import { SearchTerms } from './search';
 import { MAX_SAFE_INTEGER } from './utils.model';
 import { removeTags } from './utils.service';
+
+export type SearchTerm = {
+  global: string;
+  [col: string]: string;
+} | null;
 
 export abstract class ListDataSourceResolvedBase<
   TEntity
@@ -28,9 +31,9 @@ export abstract class ListDataSourceResolvedBase<
   private _subscriptionsStopper = new Subject<void>();
 
   constructor(
-    public searchTerms$: BehaviorSubject<string | null> = new BehaviorSubject<
-      string | null
-    >(null),
+    public searchTerms$: BehaviorSubject<SearchTerm> = new BehaviorSubject<SearchTerm>(
+      null
+    ),
     initialData: TEntity[] | null = null,
     private _options: { caseSensitive: boolean } = { caseSensitive: true }
   ) {
@@ -224,20 +227,46 @@ export abstract class ListDataSourceResolvedBase<
 
   filterCustomTerms: (data: TEntity) => string = () => '';
 
+  private _hasSearchTerms(searchTerm: SearchTerm): boolean {
+    if (!searchTerm) return false;
+    for (const key in searchTerm) {
+      if (searchTerm[key]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   protected _getSearchedData(data: TEntity[]): TEntity[] {
     const searchTerms = this.searchTerms$?.getValue();
-    if (!searchTerms?.length) {
+    if (!this._hasSearchTerms(searchTerms)) {
       return data;
     }
 
-    return data.filter((entity: TEntity) =>
-      this.filterPredicate(
-        entity,
-        searchTerms
-          .split(' ')
-          .map((st) => (this._options.caseSensitive ? st : st.toLowerCase()))
+    return data
+      .filter((entity: TEntity) =>
+        searchTerms?.global
+          ? this.filterPredicate(
+              entity,
+              searchTerms.global.split(' ').map((st) => this._getMatchValue(st))
+            )
+          : false
       )
-    );
+      .filter((entity: TEntity) => {
+        let matchColFilter: boolean | null = null;
+        for (const colName in searchTerms) {
+          if (colName === 'global') continue;
+          const searchValue = this._getMatchValue(searchTerms[colName]);
+          const value = this._getMatchValue(
+            this.filterDataAccessor(entity, colName as keyof TEntity)
+          );
+          matchColFilter = searchValue
+            .split(' ')
+            .some((v) => value.includes(v));
+        }
+        if (matchColFilter === null) return true;
+        return matchColFilter;
+      });
   }
 
   protected _getPagedData(data: TEntity[]): TEntity[] {
@@ -278,6 +307,11 @@ export abstract class ListDataSourceResolvedBase<
   private _setPaginatorLength(length: number): void {
     if (!this._paginator.getValue() || !length) return;
     timer(0).subscribe(() => (this._paginator.getValue()!.length = length));
+  }
+
+  private _getMatchValue(value?: string | null): string {
+    if (!value || typeof value !== 'string') return '';
+    return this._options.caseSensitive ? value : value.toLowerCase();
   }
 }
 

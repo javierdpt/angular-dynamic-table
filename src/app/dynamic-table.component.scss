@@ -14,7 +14,6 @@
 
 table {
   width: 100%;
-
   border-top: solid 1px #e0e0e0;
 }
 
@@ -42,4 +41,18 @@ table {
 
 .loading {
   padding: 50px 50px 130px 50px;
+}
+
+th.search-col {
+  mat-form-field {
+    width: 100%;
+  }
+  padding: 10px 10px 0;
+}
+
+th.search-col.mat-header-cell:first-of-type {
+  padding: 10px 0 0 5px;
+}
+th.search-col.mat-header-cell:last-of-type {
+  padding: 10px 5px 0;
 }

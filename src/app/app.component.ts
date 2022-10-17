@@ -24,7 +24,6 @@ export class AppComponent {
       email: 'gortiz0@mapy.cz',
       country: 'Indonesia',
       modified: '2015-05-16',
-      vip: false,
     },
     {
       id: 2,

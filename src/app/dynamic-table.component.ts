@@ -14,7 +14,10 @@ import { BehaviorSubject, Observable, of, timer } from 'rxjs';
 import { concatMap, filter, map, takeUntil } from 'rxjs/operators';
 import '../polyfills/string.extension';
 import { BaseUnsubscribeComponent } from './base-unsubscribe-component.model';
-import { ListDataSourceResolved } from './list-datasource-resolved-base.model';
+import {
+  ListDataSourceResolved,
+  SearchTerm,
+} from './list-datasource-resolved-base.model';
 import { StartlizePipe } from './start-case.pipe';
 
 export type DynamicTableLabels = {
@@ -54,13 +57,14 @@ export class DynamicTableComponent<T = any>
    */
   @Input() enableOuterSearch = true;
   @Input() caseSensitive = true;
-  @Input() outerSearchItem?: Observable<string | null>;
+  @Input() outerSearchItem?: Observable<SearchTerm>;
   @Input() itemsPerPage: number[] = [5, 10, 20];
+  @Input() columSearchEnabled = true;
 
   loading = false;
   columns!: string[];
   dataSource!: ListDataSourceResolved<{ [key: string]: any }>;
-  searchTerms = new BehaviorSubject<string | null>(null);
+  searchTerms = new BehaviorSubject<SearchTerm>(null);
   data$!: Observable<T[]>;
 
   internalToPropObjectTableDef = DynamicTableComponent.toPropObjectTableDef;
@@ -135,14 +139,14 @@ export class DynamicTableComponent<T = any>
 
     this.outerSearchItem
       .pipe(
-        concatMap((v: string | null) => {
-          this.searchInput.nativeElement.value = v ?? '';
+        concatMap((v: SearchTerm) => {
+          this.searchInput.nativeElement.value = v?.global ?? '';
           this.onSearchTerm(this.searchInput.nativeElement.value);
 
           return timer(100).pipe(map(() => v));
         }),
         filter(
-          (v: string | null) =>
+          (v: SearchTerm) =>
             !!v && !this.dataSource.noFilteredEntities$.getValue()
         ),
         takeUntil(this._stop$)
@@ -154,7 +158,30 @@ export class DynamicTableComponent<T = any>
   }
 
   onSearchTerm(searchTerm: string): void {
-    this.searchTerms.next(searchTerm);
+    this.searchTerms.next(
+      !this.searchTerms.getValue()
+        ? { global: searchTerm }
+        : { ...this.searchTerms.getValue(), global: searchTerm }
+    );
+  }
+
+  onColumnSearchTerm(colName: string, searchTerm: string): void {
+    this.searchTerms.next(
+      !this.searchTerms.getValue()
+        ? ({ [colName]: searchTerm } as SearchTerm)
+        : ({
+            ...this.searchTerms.getValue(),
+            [colName]: searchTerm,
+          } as SearchTerm)
+    );
+  }
+
+  joinTruthyStrings(...args: (string | null | undefined)[]) {
+    return args?.filter((a) => !!a).join(' ');
+  }
+
+  getSearchTermsValue(): { [key: string]: string } {
+    return this.searchTerms.getValue() ?? {};
   }
 
   isArray(elm: any): boolean {
@@ -189,11 +216,18 @@ export class DynamicTableComponent<T = any>
     return this.itemsPerPage.sort()[0];
   }
 
+  getSearchColumnsHeaderRowDef(): string[] {
+    return this.columns?.map((c) => `search-column-${c}`) ?? [];
+  }
+
   private _init(): void {
     this.loading = true;
     this.data$.subscribe((data: T[]) => {
-      if (!Array.isArray(data)) throw new Error("Dynamic table data must be an array.");
+      if (!Array.isArray(data))
+        throw new Error('Dynamic table data must be an array.');
 
+      this.columns = [];
+      const columnsAdded: { [key: string]: true } = {};
       const tempData = data.map((item: T) => {
         const objectPropsProcessed = this._getObjectKeyValuePairs({
           input: item,
@@ -204,13 +238,16 @@ export class DynamicTableComponent<T = any>
         const res: { [key: string]: any } = {};
         objectPropsProcessed.forEach((i: { title: string; value: string }) => {
           res[i.title] = i.value;
+          if (!columnsAdded[i.title]) {
+            columnsAdded[i.title] = true;
+            this.columns.push(i.title);
+          }
         });
         return res;
       });
 
       this.dataSource.setData(tempData);
       this.loading = false;
-      this.columns = tempData.length ? Object.keys(tempData[0]) : [];
     });
   }
 
